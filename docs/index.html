@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+
+html,body{
+	font-family: sans-serif;
+}
+
+textarea {
+	width: 90%;
+	clear: both;
+	display: block;
+}
+
+legend {
+	font-weight: bold;
+}
+
+fieldset {
+	margin-bottom: 1em;
+}
+
+div{
+	overflow:hidden;
+	padding-bottom:0.5em;
+}
+
+.pubKeyWrapper{
+	padding-left:1em;
+}
+
+#publicKey{
+	height:300px;
+	margin-right:0.5em;
+	display:block;
+	overflow:hidden;
+	width:90%;
+}
+
+#qrcode{
+	width:300px;
+	height:300px;
+	border:solid silver 1px;
+	display:block;
+	overflow:hidden;
+	float:left;
+}
+
+#pubKeySection{
+	width:99%;
+	overflow:hidden;
+}
+
+</style>
+<script type="text/javascript" src="jsbn.js"></script>
+<script type="text/javascript" src="random.js"></script>
+<script type="text/javascript" src="hash.js"></script>
+<script type="text/javascript" src="rsa.js"></script>
+<script type="text/javascript" src="aes.js"></script>
+<script type="text/javascript" src="api.js"></script>
+<script type="text/javascript" src="qrcode.js"></script>
+<script>
+	var bits = 3072;
+	var myPrivateKey;
+	var s="";
+
+	function $(id) {
+		return document.getElementById(id);
+	}
+	
+	function getPrivateKey(){
+		if (!myPrivateKey){
+			var passphrase = $("passphrase").value;
+			myPrivateKey = cryptico.generateRSAKey(passphrase, bits);
+		}
+		return myPrivateKey;
+	}
+	
+	function passphraseChanged(){
+		myPrivateKey=null;
+	}
+
+	function encrypt() {
+		var plaintext = $("plaintext").value;
+		var publicKey = clean($("publicKeyOfRecipient").value);
+		var encryptedMessage = cryptico.encrypt(plaintext, publicKey).cipher;
+		$("encrypted").value = encryptedMessage;
+	}
+
+	function decrypt() {
+		var encryptedMessage = clean($("encrypted").value);
+		var passphrase = $("passphrase").value;
+		var privateKey = getPrivateKey();
+		var plaintext = cryptico.decrypt(encryptedMessage, privateKey);
+		$("plaintext").value = plaintext.plaintext;
+	}
+
+	function generateKey() {
+		var passphrase = $("passphrase").value;
+		myPrivateKey = cryptico.generateRSAKey(passphrase, bits);
+		var publicKey = cryptico.publicKeyString(myPrivateKey);
+		$("publicKey").value = publicKey;
+		new QRCode(document.getElementById("qrcode"), {text: publicKey, width:300, height:300, correctLevel:QRCode.CorrectLevel.L});
+	}
+
+	function clean(s) {
+		return s.replace(/(\r\n\t|\n|\r\t)/gm, "");
+	}
+</script>
+</head>
+
+<body>
+	<fieldset>
+		<legend>Generate a public key</legend>
+		<div>
+			<label for="passphrase">Passphrase.</label> <i>Note this down on
+				paper. Don't give it to anyone. Don't store it in an electronic
+				device.</i>
+		</div>
+		<div>
+			<input id="passphrase" onchange="passphraseChanged()"><input type="button"
+				onclick="generateKey()" value="generate public key">
+		</div>
+		<div>
+			<label for="publicKey">Your public key.</label> <i>This is your public
+				key. Give this to people who can use it to send you messages.</i>
+		</div>
+		<div id="pubKeySection">
+			<div id="qrcode"></div>
+			<div class="pubKeyWrapper">
+				<textarea id="publicKey"></textarea>
+			</div>
+		</div>
+	</fieldset>
+
+	<fieldset>
+		<legend>Encrypt/decrypt a message</legend>
+		<div>
+		<label for="publicKeyOfRecipient">Recipient's public key</label><br>
+		<textarea id="publicKeyOfRecipient"></textarea><br>
+		<label for="plaintext">Message</label><input type="button" value="Encrypt" onclick="encrypt()"><br>
+		<textarea id="plaintext"></textarea>
+		</div>
+		<div>
+		<label for="encrypted">Encrypted message</label> <input type="button" value="Decrypt" onclick="decrypt()">
+		<textarea id="encrypted"></textarea>
+		</div>
+	</fieldset>
+	
+	<div>
+		For news and updates visit <a href="https://github.com/ggeorgovassilis/webencryption">https://github.com/ggeorgovassilis/webencryption</a>
+	</div>
+</body>
+</html>
